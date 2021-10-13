@@ -1,0 +1,57 @@
+rm(list = ls())
+
+require(lme4)
+require(parallel)
+
+load(file="data//ess_rescaled.Rda") # load data
+
+# paralelizing function
+
+eff_mc = function(calls, mc.cores) {
+require(parallel)
+m.list = mclapply(calls, function(i) eval(parse(text=i)), 
+                  mc.cores = mc.cores, mc.preschedule = FALSE)
+return(m.list)
+print(parse(text=i))
+}
+
+##########
+# Models #
+##########
+
+
+controls <- c("gender", "agea", "eduyrs", "domicil", "unemployed", "rideol", "union", "prtdgcl_num", "region")
+agr.ctrl <- c("gdp_wb_ppp", "wb_vae", "gov_genlr")
+additional.ctr <- c("conformity", "universalism", "security", "gincdif", "freehms", "rsquares_std", "ri_l2_std", "mean_univ", "mean_conf", "mean_secur", "transition")
+end <- "1 + (1 + rideol|countryyear) + (1|cntry), data=data, control=glmerControl(optimizer='bobyqa', optCtrl = list(maxfun = 1e9)), family=binomial(link='logit'))"
+
+models = c(paste0("glmer(protest ~ ", paste(c(controls, agr.ctrl, additional.ctr, end), collapse="+")),
+paste0("glmer(protest ~ region*rideol + ", paste(c(controls, agr.ctrl, additional.ctr, end), collapse="+")),
+paste0("glmer(protest ~ region*rideol*year_num + year_num + ", paste(c(controls, agr.ctrl, additional.ctr, end), collapse="+")),
+paste0("glmer(protest ~ region*rideol*year + year + ", paste(c(controls, agr.ctrl, additional.ctr, end), collapse="+")),
+paste0("glmer(protest ~ soc_pop_eleches + ", paste(c(controls, agr.ctrl, additional.ctr, end), collapse="+")),
+paste0("glmer(protest ~ soc_pop_eleches*region + ", paste(c(controls, agr.ctrl, additional.ctr, end), collapse="+")),
+paste0("glmer(protest ~ region*rideol*soc_pop_eleches + ", paste(c(controls, agr.ctrl, additional.ctr, end), collapse="+")),
+paste0("glmer(protest ~ region*prtdgcl_num + ", paste(c(controls, agr.ctrl, additional.ctr, end), collapse="+")),
+paste0("glmer(protest ~ region*rideol*prtdgcl_num + ", paste(c(controls, agr.ctrl, additional.ctr, end), collapse="+")),
+paste0("glmer(protest ~ gov_dist + ", paste(c(controls, agr.ctrl, additional.ctr, end), collapse="+")),
+paste0("glmer(protest ~ region*gov_dist + gov_dist + ", paste(c(controls, agr.ctrl, additional.ctr, end), collapse="+")),
+paste0("glmer(protest ~ region*gov_genlr*gov_dist + gov_dist + ", paste(c(controls, agr.ctrl, additional.ctr, end), collapse="+")))
+
+m.list = eff_mc(models, 24)
+
+m.1 <- c(m.list[1:2])
+m.2 <- c(m.list[3:4])
+m.3 <- c(m.list[5:6])
+m.4 <- c(m.list[7:8])
+m.5 <- c(m.list[9:10])
+m.6 <- c(m.list[11:12])
+
+save(m.1, data, file='m_1.RData')
+save(m.2, data, file='m_2.RData')
+save(m.3, data, file='m_3.RData')
+save(m.4, data, file='m_4.RData')
+save(m.5, data, file='m_5.RData')
+save(m.6, data, file='m_6.RData')
+
+
